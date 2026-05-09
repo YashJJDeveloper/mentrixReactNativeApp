@@ -11,10 +11,13 @@ const {
   logoutFromHeader,
 } = require('./helpers');
 
+// Logs in and ensures the user reaches the dashboard
 async function loginToDashboard() {
   await loginAs(USERS.oneInstituteTwoRoles);
 
+  // Handle institute/role selection if required
   const screen = await waitForPostLoginScreen({ keepSynchronizationDisabled: true });
+
   if (screen === 'InstituteList') {
     await selectFirstInstitute();
     await selectFirstRole();
@@ -23,12 +26,15 @@ async function loginToDashboard() {
   await expectDashboard();
 }
 
+// Same login flow but toggles theme before login
 async function loginToDashboardWithThemeToggle() {
   await element(by.id('themeToggleButton')).tap();
+
   await choosePasswordLogin(USERS.oneInstituteTwoRoles.email);
   await submitPassword(USERS.oneInstituteTwoRoles.password);
 
   const screen = await waitForPostLoginScreen({ keepSynchronizationDisabled: true });
+
   if (screen === 'InstituteList') {
     await selectFirstInstitute();
     await selectFirstRole();
@@ -38,11 +44,14 @@ async function loginToDashboardWithThemeToggle() {
 }
 
 describe('Dashboard Flow', () => {
+
+  // Start every test with a fresh app state
   beforeEach(async () => {
     await launchFresh();
     await device.disableSynchronization();
   });
 
+  // Re-enable Detox synchronization after suite execution
   afterAll(async () => {
     await device.enableSynchronization();
   });
@@ -88,6 +97,8 @@ describe('Dashboard Flow', () => {
     await loginToDashboard();
 
     await logoutFromHeader();
+
+    // User should return to login screen after logout
     await expect(element(by.id('loginScreen'))).toBeVisible();
   });
 
@@ -95,22 +106,29 @@ describe('Dashboard Flow', () => {
     await loginToDashboard();
 
     await logoutFromHeader();
+
+    // Restart app and verify session is cleared
     await device.terminateApp();
     await device.launchApp({ newInstance: false });
 
-    await waitFor(element(by.id('loginScreen'))).toBeVisible().withTimeout(10000);
+    await waitFor(element(by.id('loginScreen')))
+      .toBeVisible()
+      .withTimeout(10000);
   });
 
   it('TC08 - should restore a logged-in dashboard session after React Native reload', async () => {
     await loginToDashboard();
 
+    // Simulate RN reload
     await device.reloadReactNative();
 
     const screen = await waitForPostLoginScreen({ keepSynchronizationDisabled: true });
+
     if (screen === 'InstituteList') {
       await selectFirstInstitute();
       await selectFirstRole();
     }
+
     await expectDashboard();
   });
 
@@ -124,22 +142,27 @@ describe('Dashboard Flow', () => {
   it('TC10 - should restore a logged-in session before logout', async () => {
     await loginToDashboard();
 
+    // Relaunch app without clearing state
     await device.terminateApp();
     await device.launchApp({ newInstance: false });
 
     const screen = await waitForPostLoginScreen({ keepSynchronizationDisabled: true });
+
     if (screen === 'InstituteList') {
       await selectFirstInstitute();
       await selectFirstRole();
     }
+
     await expectDashboard();
   });
 
   it('TC11 - should keep dashboard UI stable after scrolling', async () => {
     await loginToDashboard();
 
+    // Verify scroll does not break layout
     await element(by.id('dashboardScreen')).swipe('up', 'fast', 0.5);
     await expect(element(by.id('dashboardScreen'))).toBeVisible();
+
     await element(by.id('dashboardScreen')).swipe('down', 'fast', 0.5);
     await expect(element(by.id('dashboardTitle'))).toBeVisible();
   });
@@ -148,6 +171,7 @@ describe('Dashboard Flow', () => {
     await loginToDashboard();
 
     await element(by.id('headerMenuButton')).tap();
+
     await expect(element(by.id('dashboardScreen'))).toBeVisible();
   });
 
@@ -155,6 +179,8 @@ describe('Dashboard Flow', () => {
     await loginToDashboardWithThemeToggle();
 
     await expect(element(by.id('dashboardScreen'))).toBeVisible();
+
+    // Ensure session survives RN reload
     await device.reloadReactNative();
     await expectDashboard();
   });
@@ -163,8 +189,12 @@ describe('Dashboard Flow', () => {
     await loginToDashboard();
 
     await logoutFromHeader();
+
+    // Reload app and confirm user stays logged out
     await device.reloadReactNative();
 
-    await waitFor(element(by.id('loginScreen'))).toBeVisible().withTimeout(10000);
+    await waitFor(element(by.id('loginScreen')))
+      .toBeVisible()
+      .withTimeout(10000);
   });
 });
